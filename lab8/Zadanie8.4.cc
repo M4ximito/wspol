@@ -4,7 +4,7 @@
 #include <unistd.h>    // Użycie usleep (sleep w mikrosekundach)
 #include <time.h>      // Użycie time w generatorze liczb pseudolosowych
 #include <pthread.h>   // Użycie biblioteki wątków POSIX
-    #include <semaphore.h> // Użycie semaforów
+#include <semaphore.h> // Użycie semaforów
 
 #define LICZBA_FILOZOFOW 5
 #define liczbaPosilkow 3
@@ -53,13 +53,15 @@ int main(int argc, char **argv)
 {
     int i;
 
+    // Inicjalizacja semaforów
     sem_init(&kelner, 0, LICZBA_FILOZOFOW - 1);
     for (i = 0; i < LICZBA_FILOZOFOW; i++)
     {
         pthread_mutex_init(&mutex_widelec[i], NULL);
     }
 
-    Filozof filozofowie[LICZBA_FILOZOFOW];
+    // Tworzenie wątków filozofów i ich uruchamianie
+    Filozof filozofowie[LICZBA_FILOZOFOW] = {Filozof(0), Filozof(1), Filozof(2), Filozof(3), Filozof(4)};
     #pragma omp parallel num_threads(LICZBA_FILOZOFOW)
     {
         int numer = omp_get_thread_num();
@@ -67,6 +69,7 @@ int main(int argc, char **argv)
         filozof();
     }
 
+    // Czekanie na zakończenie jedzenia przez filozofów
     for (i = 0; i < LICZBA_FILOZOFOW; i++)
     {
         pthread_mutex_destroy(&mutex_widelec[i]);
