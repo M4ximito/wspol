@@ -1,55 +1,74 @@
-#include <iostream>
-#include <omp.h>
+#include <omp.h>       //Użycie OpenMP
+#include <stdio.h>     //Dostarcza I/O
+#include <stdlib.h>    //Użycie NULL
+#include <unistd.h>    //Użycie usleep (sleep w mikrosekundach)
+#include <time.h>      //Użycie time w geneatorze liczb pseudolosowych
+#include <semaphore.h> //Użycie semaforów
 
-#define NUM_PHILOSOPHERS 5
-#define NUM_MEALS 3
+#define LICZBA_FILOZOFOW 5
+#define liczbaPosilkow 3
 
-omp_lock_t forks[NUM_PHILOSOPHERS];
-omp_lock_t waiter;
+const int MAX_OPOZNIENIE = 1000;
 
-void initialize() {
-    omp_init_lock(&waiter);
-    for (int i = 0; i < NUM_PHILOSOPHERS; i++) {
-        omp_init_lock(&forks[i]);
-    }
-}
+sem_t widelec[LICZBA_FILOZOFOW];
+sem_t kelner;
 
-void destroy() {
-    omp_destroy_lock(&waiter);
-    for (int i = 0; i < NUM_PHILOSOPHERS; i++) {
-        omp_destroy_lock(&forks[i]);
-    }
-}
+void Filozof()
+{
+    int numer = omp_get_thread_num();
+    int prawyWidelec;
+    int lewyWidelec;
 
-void philosopher(int id) {
-    int leftFork = id;
-    int rightFork = (id + 1) % NUM_PHILOSOPHERS;
+    lewyWidelec = numer;
+    prawyWidelec = (numer + 1) % LICZBA_FILOZOFOW;
 
-    for (int i = 0; i < NUM_MEALS; i++) {
-        omp_set_lock(&waiter);
+    int zjedzonychPosilkow;
+    time_t t;
+    int czasPosilku;
 
-        omp_set_lock(&forks[leftFork]);
-        omp_set_lock(&forks[rightFork]);
-
-        omp_unset_lock(&waiter);
-
-        std::cout << "Filozof " << id << " je posiłek " << i + 1 << std::endl;
-
-        omp_unset_lock(&forks[leftFork]);
-        omp_unset_lock(&forks[rightFork]);
-    }
-}
-
-int main() {
-    initialize();
-
-    #pragma omp parallel num_threads(NUM_PHILOSOPHERS)
+    for (zjedzonychPosilkow = 0; zjedzonychPosilkow < liczbaPosilkow; zjedzonychPosilkow++)
     {
-        int id = omp_get_thread_num();
-        philosopher(id);
+        sem_wait(&kelner);
+
+        sem_wait(&widelec[lewyWidelec]);
+        sem_wait(&widelec[prawyWidelec]);
+
+        sem_post(&kelner);
+
+        srand(100 * omp_get_thread_num() + 7);
+        czasPosilku = (rand() % (MAX_OPOZNIENIE + 1));
+        printf("Filozof %d je %d posiłek przez najbliższe %d ms\n", numer, zjedzonychPosilkow, czasPosilku);
+        usleep(czasPosilku);
+        printf("Filozof %d skończył jeść %d posiłek\n", numer, zjedzonychPosilkow);
+
+        sem_post(&widelec[lewyWidelec]);
+        sem_post(&widelec[prawyWidelec]);
+    }
+}
+
+int main(int argc, char **argv)
+{
+    int i;
+
+    // Inicjalizacja semaforów
+    sem_init(&kelner, 0, LICZBA_FILOZOFOW - 1);
+    for (i = 0; i < LICZBA_FILOZOFOW; i++)
+    {
+        sem_init(&widelec[i], 0, 1);
     }
 
-    destroy();
+    // Tworzenie wątków filozofów i ich uruchamianie
+    #pragma omp parallel num_threads(LICZBA_FILOZOFOW)
+    {
+        Filozof();
+    }
+
+    // Czekanie na zakończenie jedzenia przez filozofów
+    for (i = 0; i < LICZBA_FILOZOFOW; i++)
+    {
+        sem_destroy(&widelec[i]);
+    }
+    sem_destroy(&kelner);
 
     return 0;
 }
