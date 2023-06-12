@@ -1,3 +1,8 @@
+//
+//Maksim Maltsau
+//
+//96513
+//
 #include <iostream>
 #include <random>
 #include <omp.h>
