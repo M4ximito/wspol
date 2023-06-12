@@ -7,7 +7,7 @@
 #include <thread>
 #include <mutex>
 
-std::mutex console_mutex;
+std::mutex console_mutex; 
 
 void print_thread_id(int x, int thread_num, int sleep_time)
 {
