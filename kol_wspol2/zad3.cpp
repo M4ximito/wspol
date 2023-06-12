@@ -9,21 +9,24 @@ int main()
 {
     int matrix[ROWS][COLS];
 
-#pragma omp parallel for
-    for (int i = 0; i < ROWS; i++)
+#pragma omp parallel
     {
-        for (int j = 0; j < COLS; j++)
+        unsigned int seed = omp_get_thread_num() + 1;
+        std::default_random_engine generator(seed);
+        std::uniform_int_distribution<int> distribution(0, 9);
+
+#pragma omp for
+        for (int i = 0; i < ROWS; i++)
         {
-
-            unsigned int seed = omp_get_thread_num() + 1;
-            std::default_random_engine generator(seed);
-            std::uniform_int_distribution<int> distribution(0, 9);
-
-            matrix[i][j] = distribution(generator);
+            for (int j = 0; j < COLS; j++)
+            {
+                matrix[i][j] = distribution(generator);
+            }
         }
     }
 
     int sum = 0;
+
 #pragma omp parallel for reduction(+ : sum)
     for (int i = 0; i < ROWS; i++)
     {
